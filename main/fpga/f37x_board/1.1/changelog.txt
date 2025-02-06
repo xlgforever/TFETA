@@ -1,0 +1,7 @@
+######### F37X change log ##############
+1.1
+Enabling CMAC support  
+
+1.0
+F37X Initial board support
+

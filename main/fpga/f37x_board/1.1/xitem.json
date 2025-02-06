@@ -1,0 +1,33 @@
+{
+  "config": {
+    "items": [
+      {
+        "infra": {
+          "name": "F37X", 
+          "display": "F37X Acceleration Development Board", 
+          "revision": "1.1", 
+          "description": "F37X Acceleration Development Board", 
+          "company": "inspur.com", 
+          "company_display": "inspur", 
+          "author": "Vinny", 
+          "contributors": [
+            {
+              "group": "inspur", 
+              "url": "www.inspur.com"
+            }
+          ], 
+          "category": "Single Part", 
+          "website": "http://www.inspur.com/f37x", 
+          "search-keywords": [
+            "f37x", 
+            "inspur.com", 
+            "board", 
+            "Single Part"
+          ]
+        }
+      }
+    ]
+  },
+  "_major": 1,
+  "_minor": 0
+}

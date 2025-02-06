@@ -1,0 +1,17 @@
+./define.sv
+./define.v
+../../fpga/f37x/fpga_all.sv
+./common/uart_model/serialc.sv
+./common/uart_model/uart_model.sv
+./common/sub_mon_param.sv
+./net_cnt.sv
+./ini_mem.sv
+./ini_decode.sv
+./driver.sv
+./monitor.sv
+./sfu_monitor.sv
+./dump.sv
+./clk_gen.v
+./rst_gen.v
+./axi_register_dly.sv
+./tb.sv

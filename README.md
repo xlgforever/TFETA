@@ -1,0 +1,25 @@
+1. Environment Setup
+- If you want to run RTL Simulation in `main/sim/top_sim`, you must install **Synopsys VCS/Verdi** in your PC, and set the `VERDI_HOME` in your environment(for example, `export VERDI_HOME=/home/<username>/Synopsys2018/verdi/Verdi_O-2018.09-SP2`),and the memory size of PC should be **64GB** at least.
+- Python Version: 3.10.12
+- Python package:(Maybe you should use conda to create a new env)
+    - Cython==3.0.11
+    - numpy==2.1.3
+    - Pillow==10.1.0
+    - setuptools==68.2.2
+    - timm==1.0.11
+    - torch==2.4.0
+2. Library Comp
+- run `make` in `main` directory, to build library files used in simulations. In general, we use the C lib for accelerating the RTL simlulations.
+
+3. FPGA Bitstream Comp
+- make sure that you have installed the Vivado and add it to your $PATH. (We use 2020.2 Version)
+- `cp ./main/fpga/fpgaf37x_board <path_to_vivado>/data/boards/board_files -r` to install the borad files of Inspur F37X to Vivado
+- run `make fpga_1core` in `main` directory
+
+4. Simulation
+- Parameters Bin File: You could Download model parameters for ViT-B/16 at [Google Drive](https://drive.google.com/drive/folders/1jfPl2ttvgjvrhdxsx1s15K3HWwd-hw99?usp=sharing)
+    - To simulate, **copy the BIN files of the models to `top_sim` directory**
+- `cd ./main/sim/top_sim`
+- use `make` to launch simulations:
+    - It will use the `test.JPEG` to sim.(For the first time, it will take some time to download the model files from timm)
+    - If you do not want to use the C lib to acclerating the RTL simulations, us `make SFU_MODEL=NONE TILE_MODEL=NONE` to disable the C lib for accelerating the systolic array and vector unit in MMU/SFU. But this will cause the time of simulating increasing a lot.

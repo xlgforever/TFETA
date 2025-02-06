@@ -1,0 +1,10 @@
+######### F37X change log ##############
+1.2
+Change FPGA to xcvu37p-fsvh2892-2L-e
+
+1.1
+Enabling CMAC support  
+
+1.0
+F37X Initial board support
+
