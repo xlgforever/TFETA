@@ -12,7 +12,7 @@
 - run `make` in `main` directory, to build library files used in simulations. In general, we use the C lib for accelerating the RTL simlulations.
 
 3. FPGA Bitstream Comp
-- make sure that you have installed the Vivado and add it to your $PATH. (We use 2022.2 Version)
+- make sure that you have installed the Vivado and add it to your $PATH. (We use 2022.2/2020.2 Version)
 - `cp ./main/fpga/fpgaf37x_board <path_to_vivado>/data/boards/board_files -r` to install the borad files of Inspur F37X to Vivado
 - run `make fpga_1core_250m` in `main` directory
 
