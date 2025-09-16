@@ -1,5 +1,5 @@
 `define  NONE       
-`define  MODE_64     
+`define  MODE_32     
 `define  NONE       
 `define  NONE       
 `define  VCS       
