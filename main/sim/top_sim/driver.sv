@@ -1,3 +1,6 @@
+
+`define U_DUT_TOP tb.u_top.u0_dut_top.u0_dut_top
+
 module driver (
     /*AUTOARG*/
    // Outputs
@@ -45,15 +48,17 @@ module driver (
   
   reg [15:0] lut_data;
   integer i, lut_file;
-
-  reg [15:0] fp16_test;
+  integer count ;
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   initial begin
     cfg_reg_addr    = 'd0 ;
     cfg_reg_wr_data = 'd1 ;
     cfg_reg_wr_en   = 'd0 ;
+
     #1000;
     wait (rst == 1'b0);
+    force tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_DMA.params_dma_cfg_en = 1 ;
+
     
     // init lut
 `ifdef VIT_LUT
@@ -64,15 +69,16 @@ module driver (
 
     for(i=0;i<4096;i=i+1)begin
         @(posedge clk);
-        $fscanf(lut_file, "%h", lut_data);
+        count = $fscanf(lut_file, "%h", lut_data);
         ini_lut(i, lut_data);
     end
     @(posedge clk);
-    force tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut = 'd0;
-    release tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut;
-    release tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_addr[11:0];
-    release tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_data[15:0];
-    
+    force `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut = 'd0;
+    release `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut;
+    release `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_addr[11:0];
+    release `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_data[15:0];
+   
+    release  tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_DMA.params_dma_cfg_en ; 
     #100;
     $fclose(lut_file);
     #1000;
@@ -80,9 +86,9 @@ module driver (
     @(posedge clk) cfg_reg_wr_en = 'd1;
     @(posedge clk) cfg_reg_wr_en = 'd0;
 
-    //force   tb.u_top.u0_dut_top.params_feature_lmode = 1'd1;
+    //force   `U_DUT_TOP.params_feature_lmode = 1'd1;
 
-    force  tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.params_uart_divisor[31:0] =  250000000/50000000   -   1  ;
+    force  `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_TOP.params_uart_divisor[31:0] =  250000000/50000000   -   1  ;
     force tb.u_uart_model.serc.waitcnt[31:0] = 250000000 / 50000000;
 
 
@@ -97,15 +103,23 @@ module driver (
       //tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.reg_015[11:0];
       //tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.reg_015[27:12];
       //@(posedge clk);
-      force tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut = 'd1;
-      force tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_addr[11:0] = lut_addr;
-      force tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_data[15:0] = lut_data;
+      force `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut = 'd1;
+      force `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_addr[11:0] = lut_addr;
+      force `U_DUT_TOP.u0_CFG_TOP.u_MFUNC_SFU.params_write_lut_data[15:0] = lut_data;
      end
   endtask
 
 
 
-
+initial begin 
+  //force tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_feature_force_write0  = 1;
+  //force tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_feature_force_read0 = 1 ;
+  //force tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_feature_force_write_start = tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_write_start[0:0];
+  //wait(  tb.u_top.u0_dut_top.params_step_num[7:0]  ==  'd9   );
+  //release  tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_feature_force_write0 ;
+  //release   tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_feature_force_read0 ;
+  //release   tb.u_top.u0_dut_top.u0_dut_top.u0_CFG_TOP.params_feature_force_write_start  ;
+end
 
 
 

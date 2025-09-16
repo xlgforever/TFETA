@@ -5,7 +5,8 @@ module net_cnt (  /*AUTOARG*/
    m_net_axis_tvalid, net_tx_rdy,
    // Inputs
    m_net_axis_tready, net_data_in, net_valid_in, net_data_tkeep,
-   net_data_tlast, net_data_tuser
+   net_data_tlast, net_data_tuser, net_rdesc_len, net_rstart,
+   net_tdesc_len, net_tstart
    );
 
   // Width of AXI data bus in bits
@@ -67,6 +68,13 @@ module net_cnt (  /*AUTOARG*/
   input     [AXIS_KEEP_WIDTH-1:0] net_data_tkeep;
   input                           net_data_tlast;
   input     [AXIS_USER_WIDTH-1:0]    net_data_tuser;
+
+
+  input [LEN_WIDTH-1:0] net_rdesc_len;		// From u_top of chip_top.v
+  input		net_rstart;		// From u_top of chip_top.v
+  input [LEN_WIDTH-1:0] net_tdesc_len;		// From u_top of chip_top.v
+  input		net_tstart;		// From u_top of chip_top.v
+
 
   //wire [AXIS_DATA_WIDTH-1:0] m_net_axis_tdata = 'd0;  // To u_top of top.v
   //wire [AXIS_DEST_WIDTH-1:0] m_net_axis_tdest = 'hbf;  // To u_top of top.v

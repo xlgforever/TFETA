@@ -12,14 +12,19 @@
 - run `make` in `main` directory, to build library files used in simulations. In general, we use the C lib for accelerating the RTL simlulations.
 
 3. FPGA Bitstream Comp
-- make sure that you have installed the Vivado and add it to your $PATH. (We use 2020.2 Version)
+- make sure that you have installed the Vivado and add it to your $PATH. (We use 2022.2 Version)
 - `cp ./main/fpga/fpgaf37x_board <path_to_vivado>/data/boards/board_files -r` to install the borad files of Inspur F37X to Vivado
-- run `make fpga_1core` in `main` directory
+- run `make fpga_1core_250m` in `main` directory
 
 4. Simulation
 - Parameters Bin File: You could Download model parameters for ViT-B/16 at [Google Drive](https://drive.google.com/drive/folders/1jfPl2ttvgjvrhdxsx1s15K3HWwd-hw99?usp=sharing)
     - To simulate, **copy the BIN files of the models to `top_sim` directory**
 - `cd ./main/sim/top_sim`
-- use `make` to launch simulations:
-    - It will use the `test.JPEG` to sim.(For the first time, it will take some time to download the model files from timm)
-    - If you do not want to use the C lib to acclerating the RTL simulations, us `make SFU_MODEL=NONE TILE_MODEL=NONE` to disable the C lib for accelerating the systolic array and vector unit in MMU/SFU. But this will cause the time of simulating increasing a lot.
+- Simulation using the default "cock" picture at 32\*32 systolic array: `make`
+- Simulation using the default "cock" picutre at 64\*64 systolic array: `make SMODE=MODE_64`
+- Simulation using the custom picture at 32\*32 systolic array (For the first time, it will take some time to download the model files from timm):
+  - `make pic_bin TEST_IMG=<path_to_pic>`
+  - `make `
+- Simulation using the custom picture at 64\*64 systolic array:
+  - `make pic_bin TEST_IMG=<path_to_pic> SMODE=MODE_64`
+  - `make SMODE=MODE_64`

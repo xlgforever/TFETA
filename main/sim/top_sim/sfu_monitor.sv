@@ -1,7 +1,7 @@
 
 
 
-`define U_DUT_TOP tb.u_top.u0_dut_top
+`define U_DUT_TOP tb.u_top.u0_dut_top.u0_dut_top
 `define U_SFU_TOP `U_DUT_TOP.u5_sfu_top
 
 
@@ -40,7 +40,7 @@ module sfu_monitor #(
 //
 
 
-  wire           		  sfu_o_valid  =     `U_DUT_TOP.u6_sfu_out_top.m_sfu_axis_tvalid && `U_DUT_TOP.u6_sfu_out_top.m_sfu_axis_tready        ;
+  wire           		  sfu_o_valid  =     `U_DUT_TOP.u6_sfu_out_top.m_sfu_axis_tvalid && `U_DUT_TOP.u6_sfu_out_top.m_sfu_axis_tready   &&   (|(tb.u_top.u0_dut_top.u0_dut_top.u2_dma_top.u0_dma_ctrl_top.u1_rdma_ctrl_top.u0_rdma_ctrl.dma_rmode_reg[7:0]-8'd252)   ||  (tb.u_top.u0_dut_top.u0_dut_top.u13_cdma.params_cdma_mode[2:0]==1)     )      ;
   wire [NUM_CH-1:0][15:0] sfu_o_data = `U_DUT_TOP.u6_sfu_out_top.m_sfu_axis_tdata;
 
   sub_mon_param #(

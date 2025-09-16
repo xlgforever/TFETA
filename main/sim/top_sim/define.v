@@ -1,4 +1,13 @@
 
+//`ifdef   MULTI_CORE
+
+//`else
+	`define    IM2COL
+	`define    CMAC
+//	`define    CDMA
+//`endif
+
+
 `define ASSIGN_SLAVE(upstream, s_axi) \
   assign     ``upstream``.aw_id    =   ``s_axi``_awid      ;  \
   assign     ``upstream``.aw_addr  =   ``s_axi``_awaddr    ;  \

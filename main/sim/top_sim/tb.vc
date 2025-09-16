@@ -14,4 +14,5 @@
 ./clk_gen.v
 ./rst_gen.v
 ./axi_register_dly.sv
+./cmac_model.sv
 ./tb.sv

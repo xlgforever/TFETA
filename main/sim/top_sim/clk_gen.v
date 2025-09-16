@@ -3,6 +3,8 @@ module clk_gen (  /*AUTOARG*/
    clk
    );
 
+parameter  DELAY = 2 ;
+
   output clk;
   // output    clk_160  ;
   // output    clk_320  ;
@@ -13,7 +15,7 @@ module clk_gen (  /*AUTOARG*/
 
   initial begin
     clk = 0;
-    forever #2 clk = ~clk;
+    forever #DELAY clk = ~clk;
   end
 
   // initial begin

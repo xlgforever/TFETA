@@ -1,4 +1,4 @@
-`define U_DUT_TOP tb.u_top.u0_dut_top
+//`define U_DUT_TOP tb.u_top.u0_dut_top
 
 
 
@@ -7,7 +7,7 @@ module dump ();
 
 `ifdef DUMP
   initial begin
-
+ 
     //#44_000_000 
 
     //wait (tb.finance_v2_top.u_own_top.u_sub_top.u_mirp_out_top.u_mdqp_mem_ctrl.mirp_sn_enable);
@@ -27,8 +27,7 @@ module dump ();
     //#DUMP_ED ;
     //$finish ;
     //$vcdplusoff;
-
-
+   
     $fsdbAutoSwitchDumpfile(1000, "mac.fsdb", 100);
     $fsdbDumpoff;
 
@@ -51,12 +50,22 @@ module dump ();
     //wait(tb.u_top.u0_dut_top.u1_decode_top.u_decode.params_loop_cnt1_ro[15:0]=='d4);
 
     //wait (tb.u_top.u3_smatrix_top.smatrix_calc_done);
-   wait(  tb.u_top.u0_dut_top.u1_decode_top.u_decode.params_loop_cnt0_ro[15:0] == 'd1  ) ;
+    //wait(tb.u_monitor.params_step_num[7:0] >= 'd3);
 
-    #1000_000;
+    #2_00_000;
+    
+    //wait(tb.u_monitor.params_step_num[7:0] == 'd2);
+    //wait(tb.u_monitor.params_step_num[7:0] == 'd9);
+    //wait(tb.u_monitor.params_step_num[7:0] == 'd0);
+
+    $finish ;
+
+   //wait ( (  tb.u_top.u0_dut_top.u4_smatrix_out_top.u2_smatrix_orctrl.params_obuffer0_fifo_usedw_ro[15:0] > 256*256/32 ) || (  tb.u_top.u0_dut_top.u4_smatrix_out_top.u2_smatrix_orctrl.params_obuffer1_fifo_usedw_ro[15:0] > 256*256/32   )   )
+    //#1_000;   
+    //$finish ;
 
     //wait(tb.u_monitor.params_step_num[7:0] == 'd22);
-    $finish ;
+    //$finish ;
 
   end
 

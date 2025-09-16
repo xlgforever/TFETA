@@ -28,7 +28,7 @@ module ini_decode (  /*autoarg*/);
       result_r = $fread(rdata, fp_r,, 12);
 
       if ($feof(fp_r)) break;
-      tb.u_top.u07_decode_sram.u_decode_sram.u_dpsram.mem[all_line_count] = rdata;
+      tb.u_top.u0_dut_top.u01_sram_top.u07_decode_sram.u_decode_sram.u_dpsram.mem[all_line_count] = rdata;
       all_line_count++;
     end
     $display("%m: ---- decode mem ( %d * 12B ) ini done    \n  ", all_line_count);

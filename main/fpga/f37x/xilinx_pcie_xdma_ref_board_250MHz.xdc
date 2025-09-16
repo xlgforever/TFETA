@@ -88,12 +88,12 @@ set_property BITSTREAM.CONFIG.SPI_FALL_EDGE YES [current_design]
 set_property BITSTREAM.CONFIG.UNUSEDPIN Pullup [current_design]
 set_property BITSTREAM.CONFIG.SPI_32BIT_ADDR Yes [current_design]
 
-set_property PACKAGE_PIN BK28 [get_ports {dout_0[0]}]
-set_property -dict {IOSTANDARD LVCMOS18 DRIVE 4} [get_ports {dout_0[0]}]
-set_property PACKAGE_PIN BJ28 [get_ports {dout_0[1]}]
-set_property -dict {IOSTANDARD LVCMOS18 DRIVE 4} [get_ports {dout_0[1]}]
-set_property PACKAGE_PIN BL26 [get_ports {dout_0[2]}]
-set_property -dict {IOSTANDARD LVCMOS18 DRIVE 4} [get_ports {dout_0[2]}]
+##set_property PACKAGE_PIN BK28 [get_ports {dout_0[0]}]
+##set_property -dict {IOSTANDARD LVCMOS18 DRIVE 4} [get_ports {dout_0[0]}]
+##set_property PACKAGE_PIN BJ28 [get_ports {dout_0[1]}]
+##set_property -dict {IOSTANDARD LVCMOS18 DRIVE 4} [get_ports {dout_0[1]}]
+##set_property PACKAGE_PIN BL26 [get_ports {dout_0[2]}]
+##set_property -dict {IOSTANDARD LVCMOS18 DRIVE 4} [get_ports {dout_0[2]}]
 
 ### ref_clk of PCIe : 100MHz
 set_property PACKAGE_PIN AR14 [get_ports sys_clk_n]
@@ -129,8 +129,53 @@ set_property IOSTANDARD LVCMOS18 [get_ports sys_rst_n]
 ####################################################################################
 
 ##set_false_path -from [get_pins {u_pcie_mem_wrapper/pcie_mem_i/proc_sys_reset_0/U0/ACTIVE_LOW_BSR_OUT_DFF[0].FDRE_BSR_N_replica_36/C}]
-set_false_path -from [get_pins {u_top_sub/u0_dut_top/u0_CFG_TOP/u_MFUNC_*/reg_*/C}]
+
+
+set_false_path -from [get_pins {u0_top_sub/u0_dut_top/u0_CFG_TOP/u_MFUNC_*/reg_*/C}]
 set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
 connect_debug_port dbg_hub/clk [get_nets clk]
+
+
+# System clocks
+# 100 MHz (DDR4)
+#set_property -dict {LOC BJ43 IOSTANDARD LVDS} [get_ports clk_100mhz_0_p]
+#set_property -dict {LOC BJ44 IOSTANDARD LVDS} [get_ports clk_100mhz_0_n]
+#create_clock -period 10 -name clk_100mhz_0 [get_ports clk_100mhz_0_p]
+set_property -dict {LOC G18  IOSTANDARD LVCMOS18} [get_ports xmc_clk_i]
+
+create_clock -period 10.000 -name xmc_clk_i [get_ports xmc_clk_i]
+
+set_property -dict {LOC BG22 IOSTANDARD LVCMOS18} [get_ports qsfp0_lpmode]
+set_property -dict {LOC BL22 IOSTANDARD LVCMOS18} [get_ports qsfp1_lpmode]
+
+set_property -dict {LOC AN40 } [get_ports qsfp0_mgt_refclk_1_p] ;# MGTREFCLK1P_126 from SI546
+set_property -dict {LOC AD42 } [get_ports qsfp1_mgt_refclk_1_p] ;# MGTREFCLK1P_130 from SI546
+
+
+
+set_false_path -from [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]] -to [get_clocks -of_objects [get_pins {u3_cmac_200g/u0_qsfp0_cmac_inst/inst/cmac_usplus_0_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_0_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[2].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/TXOUTCLK}]]
+set_false_path -from [get_clocks -of_objects [get_pins {u3_cmac_200g/u0_qsfp0_cmac_inst/inst/cmac_usplus_0_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_0_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[2].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/TXOUTCLK}]] -to [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]]
+
+set_false_path -from [get_clocks -of_objects [get_pins {u3_cmac_200g/u1_qsfp1_cmac_inst/inst/cmac_usplus_1_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_1_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[6].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/TXOUTCLK}]] -to [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]]
+
+set_false_path -from [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]] -to [get_clocks -of_objects [get_pins {u3_cmac_200g/u1_qsfp1_cmac_inst/inst/cmac_usplus_1_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_1_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[6].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/TXOUTCLK}]]
+
+
+set_false_path -from [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]] -to [get_clocks xmc_clk_i]
+
+
+
+set_false_path -from [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/user_reset_reg/C] 
+
+
+
+set_false_path -from [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]] -to [get_clocks -of_objects [get_pins {u3_cmac_200g/u0_qsfp0_cmac_inst/inst/cmac_usplus_0_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_0_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[2].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/RXOUTCLK}]]
+set_false_path -from [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]] -to [get_clocks -of_objects [get_pins {u3_cmac_200g/u1_qsfp1_cmac_inst/inst/cmac_usplus_1_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_1_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[6].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/RXOUTCLK}]]
+set_false_path -from [get_clocks -of_objects [get_pins {u3_cmac_200g/u0_qsfp0_cmac_inst/inst/cmac_usplus_0_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_0_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[2].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/RXOUTCLK}]] -to [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]]
+set_false_path -from [get_clocks -of_objects [get_pins {u3_cmac_200g/u1_qsfp1_cmac_inst/inst/cmac_usplus_1_gt_i/inst/gen_gtwizard_gtye4_top.cmac_usplus_1_gt_gtwizard_gtye4_inst/gen_gtwizard_gtye4.gen_channel_container[6].gen_enabled_channel.gtye4_channel_wrapper_inst/channel_inst/gtye4_channel_gen.gen_gtye4_channel_inst[0].GTYE4_CHANNEL_PRIM_INST/RXOUTCLK}]] -to [get_clocks -of_objects [get_pins u1_pcie_mem_wrapper/pcie_mem_i/xdma_0/inst/pcie4c_ip_i/inst/gt_top_i/diablo_gt.diablo_gt_phy_wrapper/phy_clk_i/bufg_gt_userclk/O]]
+
+
+
+

@@ -1,8 +1,8 @@
 
 
-`define U_SMATRIX_TOP tb.u_top.u0_dut_top.u3_smatrix_top
+`define U_SMATRIX_TOP tb.u_top.u0_dut_top.u0_dut_top.u3_smatrix_top
 
-`define U_DUT_TOP tb.u_top.u0_dut_top
+`define U_DUT_TOP tb.u_top.u0_dut_top.u0_dut_top
 
 
 module monitor #(
@@ -29,25 +29,25 @@ module monitor #(
   //wire   				vpu_din1_vld                     =     tb.u_top.sfu_write_valid1            ;	
 
 
-  wire    [(ROWS*INPUT_LENGTH)-1:0] vpu_din0                       =     `U_DUT_TOP.u4_smatrix_out_top.u2_smatrix_orctrl.s_axis_tdata             ;
+  wire    [(ROWS*OUTPUT_LENGTH)-1:0] vpu_din0                       =     `U_DUT_TOP.u4_smatrix_out_top.u2_smatrix_orctrl.s_axis_tdata             ;
   wire                              vpu_din0_vld                   =     `U_DUT_TOP.u4_smatrix_out_top.u2_smatrix_orctrl.s_axis_tvalid            ;
 
 `ifdef MULTI_CORE
-  wire    [(ROWS*INPUT_LENGTH)-1:0] vpu_din1                       =     `U_DUT_TOP.u4_2_smatrix_out_top.u2_smatrix_orctrl.s_axis_tdata           ;	
+  wire    [(ROWS*OUTPUT_LENGTH)-1:0] vpu_din1                       =     `U_DUT_TOP.u4_2_smatrix_out_top.u2_smatrix_orctrl.s_axis_tdata           ;	
   wire   			    vpu_din1_vld                   =     `U_DUT_TOP.u4_2_smatrix_out_top.u2_smatrix_orctrl.s_axis_tvalid          ;
   //wire    [(ROWS*INPUT_LENGTH)-1:0] vpu_din                        =     vpu_din0_vld ?   vpu_din0  : vpu_din1  ; 
   //wire                              vpu_din_vld                    =     vpu_din0_vld ||  vpu_din1_vld ;
 
-  wire    [(ROWS*INPUT_LENGTH)-1:0] vpu_din                        =     vpu_din0  ; 
+  wire    [(ROWS*OUTPUT_LENGTH)-1:0] vpu_din                        =     vpu_din0  ; 
   wire                              vpu_din_vld                    =     vpu_din0_vld  ;
 
 `else
-  wire    [(ROWS*INPUT_LENGTH)-1:0] vpu_din                        =     vpu_din0  ; 
+  wire    [(ROWS*OUTPUT_LENGTH)-1:0] vpu_din                        =     vpu_din0  ; 
   wire                              vpu_din_vld                    =     vpu_din0_vld  ;
 `endif
 
 
-  wire params_transpose_en = `U_DUT_TOP.params_transpose_en[0:0];
+  wire params_transpose_en = `U_DUT_TOP.params_transpose_en[0];
 
   wire smatrix_last_out = `U_SMATRIX_TOP.smatrix_last_out;
   wire [ROWS-1:0][INPUT_LENGTH-1:0] smatrix_out = `U_SMATRIX_TOP.smatrix_out;
@@ -86,7 +86,7 @@ module monitor #(
   integer SMATRIX_ROW, SMATRIX_COL1, SMATRIX_COL2, MATRIX_SIZE;
   integer start_addr0, start_addr1, start_addr2;
   integer all_matrix_cnt, direct_mode;
-  real top1_value, top2_value, top3_value, top4_value, top5_value;
+
 
   real systolic_array_cnt;
 
@@ -98,7 +98,7 @@ module monitor #(
   //reg  [19:0][63:0]   step_run_cnt ; 
   real step_run_cnt[64];
 
-
+  integer scanfi ;
 
   real layer_normal_cnt;  //= step_run_cnt[0]  + step_run_cnt[10]  +   step_run_cnt[15] ;
   real softmax_cnt;  //= step_run_cnt[5]  + step_run_cnt[18]  ;
@@ -110,8 +110,7 @@ module monitor #(
   real sfu_vec_add_cnt;  //= step_run_cnt[17];
   real sfu_sort_five_cnt;  //= step_run_cnt[19];
 
-  real mas_all = 1023.0;
-  real exp_all = 15.0;
+
 
   genvar i;
   generate
@@ -168,19 +167,19 @@ end
 
 `ifdef SUB_TEST
     fp_params = $fopen("params.txt", "r");
-    $fscanf(fp_params, "%d", SMATRIX_ROW);
-    $fscanf(fp_params, "%d", MATRIX_SIZE);
-    $fscanf(fp_params, "%d", start_addr0);
-    $fscanf(fp_params, "%d", start_addr1);
-    $fscanf(fp_params, "%d", start_addr2);
-    $fscanf(fp_params, "%d", all_matrix_cnt);
-    $fscanf(fp_params, "%d", direct_mode);
-    $fscanf(fp_params, "%d", transpose_en);
-    $fscanf(fp_params, "%d", desired_cycle_cnt);
-    $fscanf(fp_params, "%d", matrix_calc_all_cnt);
-    $fscanf(fp_params, "%d", tie_calc_all_cnt);
-    $fscanf(fp_params, "%d", SMATRIX_COL1);
-    $fscanf(fp_params, "%d", SMATRIX_COL2);
+    scanfi=$fscanf(fp_params, "%0d", SMATRIX_ROW);
+    scanfi=$fscanf(fp_params, "%0d", MATRIX_SIZE);
+    scanfi=$fscanf(fp_params, "%0d", start_addr0);
+    scanfi=$fscanf(fp_params, "%0d", start_addr1);
+    scanfi=$fscanf(fp_params, "%0d", start_addr2);
+    scanfi=$fscanf(fp_params, "%0d", all_matrix_cnt);
+    scanfi=$fscanf(fp_params, "%0d", direct_mode);
+    scanfi=$fscanf(fp_params, "%0d", transpose_en);
+    scanfi=$fscanf(fp_params, "%0d", desired_cycle_cnt);
+    scanfi=$fscanf(fp_params, "%0d", matrix_calc_all_cnt);
+    scanfi=$fscanf(fp_params, "%0d", tie_calc_all_cnt);
+    scanfi=$fscanf(fp_params, "%0d", SMATRIX_COL1);
+    scanfi=$fscanf(fp_params, "%0d", SMATRIX_COL2);
     $fclose(fp_params);
 
 
@@ -193,11 +192,11 @@ end
     // read file
     for (integer i = 0; i < ROWS; i = i + 1) begin
       for (integer j = 0; j < COLUMNS; j = j + 1) begin
-        $fscanf(fp_result_c, "%h", matrix_result_c_tmp[i][j]);
+        scanfi=$fscanf(fp_result_c, "%h", matrix_result_c_tmp[i][j]);
       end
     end
 
-    //$display("%m: ---- run_cycle is %0d  ;  utilization is %f     %d   \n  " , run_cnt   , (  $pow(( ($sqrt(all_line_count)) /ROWS),3)   )   ,      $pow(   ($sqrt(all_line_count)) /ROWS   , 3 )   );
+    //$display("%m: ---- run_cycle is %0d  ;  utilization is %f     %0d   \n  " , run_cnt   , (  $pow(( ($sqrt(all_line_count)) /ROWS),3)   )   ,      $pow(   ($sqrt(all_line_count)) /ROWS   , 3 )   );
 
     round_max = $floor(all_line_count / ROWS / COLUMNS);
     //round_max = 2;
@@ -233,7 +232,7 @@ end
 `endif
 
     $display("\n %m:    matrix_cnt               utilization is %f  ,  systolic_utilization is  %f , decode_addr is %0d  \n ",
-            (matrix_cnt * 100) / run_cnt, (systolic_array_cnt * ROWS * 100) / matrix_cnt   ,  tb.u_top.u0_dut_top.u1_decode_top.u_decode.decode_read_addr[12:0] );
+            (matrix_cnt * 100) / run_cnt, (systolic_array_cnt * ROWS * 100) / matrix_cnt   , `U_DUT_TOP.u1_decode_top.u_decode.decode_read_addr );
     $display("%m:    layer_normal_cnt         utilization is %f \n  ",
              (layer_normal_cnt * 100) / run_cnt);
     $display("%m:    softmax_cnt              utilization is %f \n  ",
@@ -253,7 +252,7 @@ end
 
 
     #1_0000;
-    wait (tb.u_top.u0_dut_top.u7_uart_top.u_dbg_bridge.u_fifo_tx.count_q[8:0] == 'd0 ) ; 
+    wait (`U_DUT_TOP.u7_uart_top.u_dbg_bridge.u_fifo_tx.count_q[8:0] == 'd0 ) ; 
     //`ifdef COMP
 
     $display("systolic_array_cnt = %0d ", systolic_array_cnt);
@@ -270,34 +269,13 @@ end
       $writememh("A_rtl.bin", tb.u00_ram.mem);
       $writememh("B_rtl.bin", tb.u01_ram.mem);
       $writememh("C_rtl.bin", tb.u02_ram.mem);
-      $writememh("T_rtl.bin", tb.u_top.u08_greg_sram.u_greg_sram.u_dpsram.mem);
+      $writememh("T_rtl.bin", tb.u_top.u0_dut_top.u01_sram_top.u08_greg_sram.u_greg_sram.u_dpsram.mem);
       $fdisplay(fr, "%0d", 1) ; 
     end
     $fclose(fr);
 
     //`endif
-    $display("Top1 index is %d ",tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_00e[15:0]);
-    top1_value = 2**(tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_00e[30-:5] - exp_all) * (1 + tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_00e[25-:10]/mas_all);
-    $display("Top1 value is %f ",top1_value);
 
-    $display("Top2 index is %d ",tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_00f[15:0]);
-    top2_value = 2**(tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_00f[30-:5] - exp_all) * (1 + tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_00f[25-:10]/mas_all);
-    $display("Top2 value is %f ",top2_value);
-
-    $display("Top3 index is %d ",tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_010[15:0]);
-    top3_value = 2**(tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_010[30-:5] - exp_all) * (1 + tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_010[25-:10]/mas_all);
-    $display("Top3 value is %f ",top3_value);
-
-    $display("Top4 index is %d ",tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_011[15:0]);
-    top4_value = 2**(tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_011[30-:5] - exp_all) * (1 + tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_011[25-:10]/mas_all);
-    $display("Top4 value is %f ",top4_value);
-    
-    $display("Top5 index is %d ",tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_012[15:0]);
-    top5_value = 2**(tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_012[30-:5] - exp_all) * (1 + tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_012[25-:10]/mas_all);
-    $display("Top5 value is %f ",top5_value);
-
-    // time
-    $display("Inference time in Simulation is %d ns",tb.u_top.u0_dut_top.u0_CFG_TOP.u_MFUNC_TOP.reg_020[31:0]*4);
     $finish;
   end
 
@@ -305,7 +283,7 @@ end
     forever begin
       @(posedge clk);
       if (round_cnt == round_max) begin
-        //$display("%m: ---- run_time is %0d ms ---  run_cycle is %0d ---  Desired_cycle is %d ---  utilization is   %d %%   \n  " ,   time_cnt  ,run_cnt ,   desired_cycle_cnt                 ,      (desired_cycle_cnt*100   / (run_cnt))  );					
+        //$display("%m: ---- run_time is %0d ms ---  run_cycle is %0d ---  Desired_cycle is %0d ---  utilization is   %0d %%   \n  " ,   time_cnt  ,run_cnt ,   desired_cycle_cnt                 ,      (desired_cycle_cnt*100   / (run_cnt))  );					
         //#1_0000
         break;
         //$finish;
@@ -319,7 +297,7 @@ end
           //read new data
           for (integer i = 0; i < ROWS; i = i + 1) begin
             for (integer j = 0; j < COLUMNS; j = j + 1) begin
-              $fscanf(fp_result_c, "%h", matrix_result_c_tmp[i][j]);
+              scanfi=$fscanf(fp_result_c, "%h", matrix_result_c_tmp[i][j]);
             end
           end
         end
@@ -424,7 +402,7 @@ end
 //
 //    // read file
 //    for (integer i = 0; i < ROWS; i = i + 1) begin
-//      $fscanf(fp_result_do, "%h", matrix_result_do[i]);
+//      scanfi=$fscanf(fp_result_do, "%h", matrix_result_do[i]);
 //    end
 //
 //  end
@@ -450,7 +428,7 @@ end
 //
 //      #1
 //      for (integer i = 0; i < ROWS; i = i + 1) begin
-//        $fscanf(fp_result_do, "%h", matrix_result_do[i]);
+//        scanfi=$fscanf(fp_result_do, "%h", matrix_result_do[i]);
 //      end
 //`endif
 //
@@ -464,7 +442,7 @@ end
       	.FILE("./DO.txt"),
       `endif
       .ELEMENT_NUM(ROWS),
-      .ELEMENT_WIDTH(16)
+      .ELEMENT_WIDTH(OUTPUT_LENGTH)
   ) u_data_mon (
       .clk (clk),
       .rst (rst),
@@ -480,8 +458,8 @@ assign   compare_fail =  u_data_mon.err_flag ;
 
 `else
 
-wire          token_din_vld =  tb.u_top.u0_dut_top.u2_dma_top.u2_dma_dmux_top.u_rdma_dmux.object_qw_index_ro_valid;
-wire [31:0]   token_din     =  tb.u_top.u0_dut_top.u2_dma_top.u2_dma_dmux_top.u_rdma_dmux.params_object_qw_index_ro[31:0];
+wire          token_din_vld =  `U_DUT_TOP.u2_dma_top.u2_dma_dmux_top.u_rdma_dmux.object_qw_index_ro_valid;
+wire [31:0]   token_din     =  `U_DUT_TOP.u2_dma_top.u2_dma_dmux_top.u_rdma_dmux.params_object_qw_index_ro[31:0];
   sub_mon_param #(
       .FILE("./T.txt"),
       .ELEMENT_NUM(1),
@@ -498,14 +476,26 @@ assign   compare_fail =  u_data_mon.err_flag ||  u_token_mon.err_flag ;
 
 `endif
 
+wire [31:0]   tx_fifo_frame_wcnt =     tb.u_top.u0_dut_top.u0_dut_top.u11_cmac_top.u2_cmac_tx.fifo_frame_wcnt;
+wire [31:0]   rx_fifo_frame_wcnt =     tb.u_top.u0_dut_top.u0_dut_top.u11_cmac_top.u3_cmac_rx.fifo_frame_wcnt;
+
+wire [7:0]   tx_fifo_frame_cnt =     tb.u_top.u0_dut_top.u0_dut_top.u11_cmac_top.u2_cmac_tx.fifo_frame_cnt;
+wire [7:0]   rx_fifo_frame_cnt =     tb.u_top.u0_dut_top.u0_dut_top.u11_cmac_top.u3_cmac_rx.fifo_frame_cnt;
+
+
 
   initial begin
     time_cnt = 32'd0;
     forever
     #100_000 begin
       time_cnt = time_cnt + 100;
-      $display(" now is %d-us ,  systolic_array_cnt  is %0d  ,  layer_cnt  is %0d    ", time_cnt,
-               systolic_array_cnt, `U_DUT_TOP.u1_decode_top.params_loop_cnt0_ro[7:0]);
+      `ifdef  NETSIM
+        $display("%m  now is %0d-us ,    tx_fifo_frame_wcnt is %0d/%0d   rx_fifo_frame_wcnt is %0d/%0d \n", time_cnt,  tx_fifo_frame_cnt , tx_fifo_frame_wcnt , rx_fifo_frame_cnt , rx_fifo_frame_wcnt );
+      `else
+	$display("%m  now is %0d-us ,  systolic_array_cnt  is %0d  ,  layer_cnt  is %0d  \n", time_cnt,
+               systolic_array_cnt, `U_DUT_TOP.u1_decode_top.params_loop_cnt0_ro[7:0]  );
+
+      `endif
     end
   end
 
@@ -521,7 +511,7 @@ assign   compare_fail =  u_data_mon.err_flag ||  u_token_mon.err_flag ;
       end else begin
 
         $display("\n %m:    matrix_cnt               utilization is %f  ,  systolic_utilization is  %f  , step_num is %0d , decode_addr is %0d  \n ",
-            (matrix_cnt * 100) / run_cnt, (systolic_array_cnt * ROWS * 100) / matrix_cnt   , params_step_num , tb.u_top.u0_dut_top.u1_decode_top.u_decode.decode_read_addr[12:0] );
+            (matrix_cnt * 100) / run_cnt, (systolic_array_cnt * ROWS * 100) / matrix_cnt   , params_step_num , `U_DUT_TOP.u1_decode_top.u_decode.decode_read_addr );
         $display("%m:    layer_normal_cnt         utilization is %f \n  ",
                  (layer_normal_cnt * 100) / run_cnt);
         $display("%m:    softmax_cnt              utilization is %f \n  ",
@@ -543,5 +533,6 @@ assign   compare_fail =  u_data_mon.err_flag ||  u_token_mon.err_flag ;
       end
     end
   end
+
 endmodule
 

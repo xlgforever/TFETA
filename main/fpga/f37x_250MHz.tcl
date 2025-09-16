@@ -214,11 +214,18 @@ set obj [get_filesets sources_1]
 # Import local files from the original project
 set files [list \
  [file normalize "${origin_dir}/${_xil_proj_name_}/fpga_all.sv" ]\
- [file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/xilinx_ma/xilinx_ma.xci" ]\
- [file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/xilinx_fadd/xilinx_fadd.xci" ]\
- [file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/xilinx_fmult/xilinx_fmult.xci" ]\
 ]
+
+ #[file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/ila_0/ila_0.xci" ]\
+
+ #[file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/xilinx_ma/xilinx_ma.xci" ]\
+ #[file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/xilinx_fadd/xilinx_fadd.xci" ]\
+ #[file normalize "${origin_dir}/${_xil_proj_name_}/xilinx_ip/xilinx_fmult/xilinx_fmult.xci" ]\
+
 set imported_files [import_files -fileset sources_1 $files]
+
+source ${origin_dir}/${_xil_proj_name_}/xilinx_ip/cmac_usplus_0.tcl
+source ${origin_dir}/${_xil_proj_name_}/xilinx_ip/cmac_usplus_1.tcl
 
 ### Set 'sources_1' fileset file properties for local files
 ##set file "${origin_dir}/${_xil_proj_name_}/xilinx_ma/xilinx_ma.xci"
@@ -522,22 +529,51 @@ proc create_hier_cell_ddr_subsystem { parentCell nameHier } {
   create_bd_pin -dir I -type rst ddr4_sys_rst_c2
 
   # Create instance: axi_interconnect_3in1, and set properties
-  set axi_interconnect_3in1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_3in1 ]
+##  set axi_interconnect_3in1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_3in1 ]
+##  set_property -dict [ list \
+##   CONFIG.M00_HAS_REGSLICE {3} \
+##   CONFIG.M01_HAS_REGSLICE {3} \
+##   CONFIG.M02_HAS_REGSLICE {3} \
+##   CONFIG.NUM_MI {3} \
+##   CONFIG.NUM_SI {8} \
+##   CONFIG.S00_HAS_REGSLICE {3} \
+##   CONFIG.S01_HAS_REGSLICE {3} \
+##   CONFIG.S02_HAS_REGSLICE {3} \
+##   CONFIG.S03_HAS_REGSLICE {3} \
+##   CONFIG.S04_HAS_REGSLICE {3} \
+##   CONFIG.S05_HAS_REGSLICE {3} \
+##   CONFIG.S06_HAS_REGSLICE {3} \
+##   CONFIG.S07_HAS_REGSLICE {3} \
+## ] $axi_interconnect_3in1
+
+set axi_interconnect_3in1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_3in1 ]
   set_property -dict [ list \
    CONFIG.M00_HAS_REGSLICE {3} \
    CONFIG.M01_HAS_REGSLICE {3} \
    CONFIG.M02_HAS_REGSLICE {3} \
    CONFIG.NUM_MI {3} \
    CONFIG.NUM_SI {8} \
+   CONFIG.S00_HAS_DATA_FIFO {2} \
    CONFIG.S00_HAS_REGSLICE {3} \
+   CONFIG.S01_HAS_DATA_FIFO {2} \
    CONFIG.S01_HAS_REGSLICE {3} \
+   CONFIG.S02_HAS_DATA_FIFO {2} \
    CONFIG.S02_HAS_REGSLICE {3} \
+   CONFIG.S03_HAS_DATA_FIFO {2} \
    CONFIG.S03_HAS_REGSLICE {3} \
+   CONFIG.S04_HAS_DATA_FIFO {2} \
    CONFIG.S04_HAS_REGSLICE {3} \
+   CONFIG.S05_HAS_DATA_FIFO {2} \
    CONFIG.S05_HAS_REGSLICE {3} \
+   CONFIG.S06_HAS_DATA_FIFO {2} \
    CONFIG.S06_HAS_REGSLICE {3} \
+   CONFIG.S07_HAS_DATA_FIFO {2} \
    CONFIG.S07_HAS_REGSLICE {3} \
+   CONFIG.STRATEGY {2} \
  ] $axi_interconnect_3in1
+
+  
+
 
   # Create instance: axi_interconnect_ctrl_0, and set properties
   set axi_interconnect_ctrl_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_interconnect_ctrl_0 ]
@@ -2117,11 +2153,14 @@ set_property USED_IN_SYNTHESIS "1" [get_files pcie_mem.bd ]
 
 # Launch Synthesis
 set_property strategy "Flow_PerfOptimized_high" [get_runs synth_1]
-launch_runs synth_1 -jobs 8
-wait_on_run synth_1
 
 set_property report_strategy {UltraFast Design Methodology Reports} [get_runs impl_1]
 set_property strategy Congestion_SSI_SpreadLogic_high [get_runs impl_1]
+
+##set_property -name "steps.synth_design.args.flatten_hierarchy" -value "full" -objects [get_runs synth_1]
+launch_runs synth_1 -jobs 8
+wait_on_run synth_1
+
 
 launch_runs impl_1 -jobs  8
 wait_on_run impl_1

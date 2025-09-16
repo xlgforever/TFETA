@@ -5,66 +5,126 @@
 
 module tb (  /*AUTOARG*/
    // Outputs
+   params_qsfp1_loopback_in, params_qsfp0_loopback_in, params_mac_rst,
    params_irq_ro, params_core_sync,
    // Inputs
    params_core_sync1_ro, params_core_sync0_ro
    );
   ////////////////////////////////////////////////////////////////////////////
 
+   parameter  GADDR_BITS = 10 ;
+   parameter  GDATA_BITS = 64 ;
+
   parameter int unsigned DMEM_DEPTH = 8 * 12;
-  parameter int unsigned DADDR_BITS = 13;
-  parameter int unsigned RAM_SIZE = 256;
-  parameter DELAY_CNT = 48  ;
+  parameter int unsigned DADDR_BITS = 12;
+  //parameter DELAY_CNT = 48  ;
+  parameter DELAY_CNT = 2  ;
 
-  //parameter int unsigned WRAM_SIZE0 = 1024;
-  //parameter int unsigned WRAM_SIZE1 = 1024;
-
+`ifdef   MULTI_CORE
+  parameter int unsigned RAM_SIZE   = 256;
   parameter int unsigned WRAM_SIZE0 = 256;
   parameter int unsigned WRAM_SIZE1 = 256;
+`else
+  parameter int unsigned RAM_SIZE   = 512;
+  parameter int unsigned WRAM_SIZE0 = 1024;
+  parameter int unsigned WRAM_SIZE1 = 1024;
+
+`endif
+
+  //parameter int unsigned WRAM_SIZE0 = 256;
+  //parameter int unsigned WRAM_SIZE1 = 256;
 
 
 `ifdef MODE_32
   parameter fpga_pkg::tile_features_t TILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT1;
+  parameter fpga_pkg::tile_features_t STILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT1;
 `elsif MODE_64
   parameter fpga_pkg::tile_features_t TILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT4;
+  parameter fpga_pkg::tile_features_t STILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT4;
 `elsif MODE_16
   parameter fpga_pkg::tile_features_t TILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT5;
-`elsif MODE_32_INT8
-  parameter fpga_pkg::tile_features_t TILE_FEATURES = fpga_pkg::TILE_FEATURES_INT8_32;
+  parameter fpga_pkg::tile_features_t STILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT5;
+`elsif MODE_64_INT8
+  parameter fpga_pkg::tile_features_t TILE_FEATURES = fpga_pkg::TILE_FEATURES_INT8_64;
+  parameter fpga_pkg::tile_features_t STILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT1;
 `else
   parameter fpga_pkg::tile_features_t TILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT1;
+  parameter fpga_pkg::tile_features_t STILE_FEATURES = fpga_pkg::TILE_FEATURES_DEFAULT1;
 `endif
 
-  localparam fpga_pkg::pe_features_t PE_FEATURES = TILE_FEATURES.PE_Features;
-  localparam int unsigned ROWS = TILE_FEATURES.rows;
-  localparam int unsigned COLUMNS = TILE_FEATURES.columns;
 
+
+ localparam fpga_pkg::pe_features_t PE_FEATURES = TILE_FEATURES.PE_Features;
+ localparam int unsigned ROWS = TILE_FEATURES.rows;
+ localparam int unsigned COLUMNS = TILE_FEATURES.columns;
+
+ //localparam  int unsigned MAX_REPEAT_CNT  =  (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS)/2 -1  ;
+ localparam  int unsigned MAX_REPEAT_CNT  =  0  ;
+ localparam  int unsigned ADD_LATENCY     =  7 ;
+
+ localparam int unsigned INPUT_LENGTH = fpga_pkg::data_width(PE_FEATURES.InputType);
+ localparam int unsigned OUTPUT_LENGTH = fpga_pkg::data_width(PE_FEATURES.OutputType);
+ localparam int unsigned ACC_LENGTH = fpga_pkg::data_width(PE_FEATURES.AccType);
+ localparam int unsigned ID_WIDTH = $clog2(PE_FEATURES.MaxSimultaneousMatmuls);
+ localparam fpga_pkg::data_flow_e DATA_FLOW = PE_FEATURES.DataFlow;
+ localparam int unsigned MSM = PE_FEATURES.MaxSimultaneousMatmuls;
+
+ localparam int unsigned MAC_DELAY =  TILE_FEATURES.PE_Features.MacDelay;
+
+ localparam  int unsigned FMEM_DEPTH  =  (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS) ;
+
+ //parameter   int unsigned WMEM_DEPTH  =  (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS) ;
   parameter   int unsigned WMEM_DEPTH  =  (WRAM_SIZE0/ROWS)*(WRAM_SIZE1/ROWS) ;
 
-  //localparam  int unsigned MAX_REPEAT_CNT  =  (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS)/2 -1  ;  
-  //localparam int unsigned ADD_LATENCY = 7;
+ localparam  int unsigned BMEM_DEPTH  =  (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS) ;
+ localparam  int unsigned SMEM_DEPTH  =  (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS) ;
+ localparam  int unsigned SMAMEM_DEPTH = (RAM_SIZE/ROWS)*(RAM_SIZE/ROWS) ;
 
-  localparam int unsigned INPUT_LENGTH = fpga_pkg::data_width(PE_FEATURES.InputType);
-  localparam int unsigned OUTPUT_LENGTH = fpga_pkg::data_width(PE_FEATURES.OutputType);
-  localparam int unsigned ACC_LENGTH = fpga_pkg::data_width(PE_FEATURES.AccType);
-  localparam int unsigned ID_WIDTH = $clog2(PE_FEATURES.MaxSimultaneousMatmuls);
-  localparam fpga_pkg::data_flow_e DATA_FLOW = PE_FEATURES.DataFlow;
-  localparam int unsigned MSM = PE_FEATURES.MaxSimultaneousMatmuls;
+ localparam int unsigned WADDR_BITS =  $clog2(ROWS*WMEM_DEPTH);
+ localparam int unsigned FADDR_BITS =  $clog2(ROWS*FMEM_DEPTH);
+ localparam int unsigned BADDR_BITS =  $clog2(ROWS*BMEM_DEPTH); 
 
-  localparam int unsigned MAC_DELAY = TILE_FEATURES.PE_Features.MacDelay;
+ localparam int unsigned MADDR_BITS =  $clog2(ROWS*( MAX_REPEAT_CNT + 1));
+ //localparam int unsigned SMADDR_BITS =  $clog2(ROWS*(MAX_REPEAT_CNT+1)*(MAX_REPEAT_CNT+1));
+ localparam int unsigned SMADDR_BITS =  $clog2(ROWS*SMAMEM_DEPTH);
 
-  parameter SFU_SCALAR_DEPTH = 1024;
-  parameter SFU_GB_DEPTH = 128;
+ localparam int unsigned SADDR_BITS =  $clog2(ROWS*SMEM_DEPTH);
 
 
-  ///////////////////////////////////
+   parameter 			NUM_CH = ROWS;
 
-  parameter SFU_SRAM_WIDTH = ROWS * INPUT_LENGTH;
-  parameter SFU_SRAM_DEPTH = 768 * 256 * 16 / SFU_SRAM_WIDTH;
-  parameter NUM_CH = ROWS;
-  parameter SFU_MODE_LEN = 5;
-  parameter SFU_SUB_LEN = 16;
- parameter  GADDR_BITS = 9 ;
+///////////////////////////////////
+ localparam fpga_pkg::pe_features_t SPE_FEATURES = STILE_FEATURES.PE_Features;
+ localparam int unsigned SROWS = STILE_FEATURES.rows;
+ localparam int unsigned SCOLUMNS = STILE_FEATURES.columns;
+
+ localparam int unsigned SINPUT_LENGTH = fpga_pkg::data_width(SPE_FEATURES.InputType);
+
+   parameter                    SFU_SRAM_WIDTH = SROWS*SINPUT_LENGTH;
+   parameter 			SFU_SRAM_DEPTH = 3*RAM_SIZE*RAM_SIZE*SINPUT_LENGTH/SFU_SRAM_WIDTH;
+   parameter 			SFU_NUM_CH = SROWS;
+   parameter 			SFU_MODE_LEN = 5;
+   parameter 			SFU_SUB_LEN  = 16;
+
+
+  parameter 			SFU_SRAM_DELAY  = 2; // mode==1: the read operation will be delay 1 cycle
+  localparam          SFU_SRAM_ADDR_BITS =  $clog2(SFU_SRAM_DEPTH); // clog2(6144) = 13bit
+
+  parameter 			SFU_SCALAR_DEPTH = 1024  ;
+  localparam   		SCALAR_ADDR_BITS = $clog2(SFU_SCALAR_DEPTH);
+
+  parameter 			SFU_GB_DEPTH = 128       ;
+  localparam 			GB_ADDR_BITS = $clog2(SFU_GB_DEPTH);
+  //localparam            WORD_SIZE = INPUT_LENGTH;
+  localparam            TOKEN_SRAM_DELAY = 3;
+   
+
+	localparam LB_ELEWIDTH = SINPUT_LENGTH;
+	parameter LB_DEPTH = 256;
+	parameter LB_DLY = SFU_SRAM_DELAY; //
+	parameter LB_CH = 24;
+	localparam LB_WIDTH = LB_ELEWIDTH*SFU_NUM_CH;
+    parameter LB_RAM_TYPE = "auto";
 
   //////////////////////////////////////////////////////////////////////////////////////////////////
   localparam S_COUNT = 8;
@@ -101,7 +161,7 @@ module tb (  /*AUTOARG*/
   // AXI stream tuser signal width
   parameter AXIS_USER_WIDTH = 8;
   // Width of length field
-  parameter LEN_WIDTH = 22;
+  parameter LEN_WIDTH = 32;
   // Width of tag field
   parameter TAG_WIDTH = 8;
   // Enable support for scatter/gather DMA
@@ -144,6 +204,9 @@ module tb (  /*AUTOARG*/
   // Beginning of automatic outputs (from unused autoinst outputs)
   output [1:0]		params_core_sync;	// From u_top of top.v
   output		params_irq_ro;		// From u_top of top.v
+  output		params_mac_rst;		// From u_top of top.v
+  output [11:0]		params_qsfp0_loopback_in;// From u_top of top.v
+  output [11:0]		params_qsfp1_loopback_in;// From u_top of top.v
   // End of automatics
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
@@ -358,21 +421,37 @@ module tb (  /*AUTOARG*/
   wire [AXI_STRB_WIDTH-1:0] m02_axi_wstrb_reg;	// From u02_register of axi_register_dly.v
   wire			m02_axi_wvalid;		// From u_top of top.v
   wire			m02_axi_wvalid_reg;	// From u02_register of axi_register_dly.v
-  wire [AXIS_DATA_WIDTH-1:0] m_net_axis_tdata;	// From u_net_cnt of net_cnt.v
-  wire [AXIS_DEST_WIDTH-1:0] m_net_axis_tdest;	// From u_net_cnt of net_cnt.v
-  wire [AXIS_ID_WIDTH-1:0] m_net_axis_tid;	// From u_net_cnt of net_cnt.v
-  wire [AXIS_KEEP_WIDTH-1:0] m_net_axis_tkeep;	// From u_net_cnt of net_cnt.v
-  wire			m_net_axis_tlast;	// From u_net_cnt of net_cnt.v
-  wire			m_net_axis_tready;	// From u_top of top.v
-  wire [AXIS_USER_WIDTH-1:0] m_net_axis_tuser;	// From u_net_cnt of net_cnt.v
-  wire			m_net_axis_tvalid;	// From u_net_cnt of net_cnt.v
-  wire [(ROWS*INPUT_LENGTH)-1:0] net_data_in;	// From u_top of top.v
-  wire [AXIS_KEEP_WIDTH-1:0] net_data_tkeep;	// From u_top of top.v
-  wire			net_data_tlast;		// From u_top of top.v
-  wire [AXIS_USER_WIDTH-1:0] net_data_tuser;	// From u_top of top.v
-  wire			net_tx_rdy;		// From u_net_cnt of net_cnt.v
-  wire			net_valid_in;		// From u_top of top.v
   wire [7:0]		params_step_num;	// From u_top of top.v
+  wire [511:0]		qsfp0_mac_tx_axis_tdata;// From u_top of top.v
+  wire [63:0]		qsfp0_mac_tx_axis_tkeep;// From u_top of top.v
+  wire			qsfp0_mac_tx_axis_tlast;// From u_top of top.v
+  wire			qsfp0_mac_tx_axis_tready;// From u_cmac_model of cmac_model.v
+  wire [7:0]		qsfp0_mac_tx_axis_tuser;// From u_top of top.v
+  wire			qsfp0_mac_tx_axis_tvalid;// From u_top of top.v
+  wire [511:0]		qsfp0_rx_axis_tdata_int;// From u_cmac_model of cmac_model.v
+  wire [63:0]		qsfp0_rx_axis_tkeep_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp0_rx_axis_tlast_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp0_rx_axis_tuser_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp0_rx_axis_tvalid_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp0_rx_clk_int;	// From u_cmac_model of cmac_model.v
+  wire			qsfp0_rx_rst_int;	// From u_cmac_model of cmac_model.v
+  wire			qsfp0_tx_clk_int;	// From u_cmac_model of cmac_model.v
+  wire			qsfp0_tx_rst_int;	// From u_cmac_model of cmac_model.v
+  wire [511:0]		qsfp1_mac_tx_axis_tdata;// From u_top of top.v
+  wire [63:0]		qsfp1_mac_tx_axis_tkeep;// From u_top of top.v
+  wire			qsfp1_mac_tx_axis_tlast;// From u_top of top.v
+  wire			qsfp1_mac_tx_axis_tready;// From u_cmac_model of cmac_model.v
+  wire [7:0]		qsfp1_mac_tx_axis_tuser;// From u_top of top.v
+  wire			qsfp1_mac_tx_axis_tvalid;// From u_top of top.v
+  wire [511:0]		qsfp1_rx_axis_tdata_int;// From u_cmac_model of cmac_model.v
+  wire [63:0]		qsfp1_rx_axis_tkeep_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp1_rx_axis_tlast_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp1_rx_axis_tuser_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp1_rx_axis_tvalid_int;// From u_cmac_model of cmac_model.v
+  wire			qsfp1_rx_clk_int;	// From u_cmac_model of cmac_model.v
+  wire			qsfp1_rx_rst_int;	// From u_cmac_model of cmac_model.v
+  wire			qsfp1_tx_clk_int;	// From u_cmac_model of cmac_model.v
+  wire			qsfp1_tx_rst_int;	// From u_cmac_model of cmac_model.v
   wire			rst;			// From u_rst_gen of rst_gen.v
   wire			uart_rxd_i;		// From u_uart_model of uart_model.v
   wire			uart_txd_o;		// From u_top of top.v
@@ -432,6 +511,8 @@ module tb (  /*AUTOARG*/
       /*AUTOINSTPARAM*/
 	// Parameters
 	.GADDR_BITS			(GADDR_BITS),
+	.GDATA_BITS			(GDATA_BITS),
+	.DELAY_CNT			(DELAY_CNT),
 	.DMEM_DEPTH			(DMEM_DEPTH),
 	.DADDR_BITS			(DADDR_BITS),
 	.RAM_SIZE			(RAM_SIZE),
@@ -440,13 +521,20 @@ module tb (  /*AUTOARG*/
 //	.fpga_pkg::tile_features_t	(fpga_pkg::tile_features_t),
 	.TILE_FEATURES			(TILE_FEATURES),
 	.WMEM_DEPTH			(WMEM_DEPTH),
+	.NUM_CH				(NUM_CH),
+	.STILE_FEATURES			(STILE_FEATURES),
 	.SFU_SRAM_WIDTH			(SFU_SRAM_WIDTH),
 	.SFU_SRAM_DEPTH			(SFU_SRAM_DEPTH),
-	.NUM_CH				(NUM_CH),
+	.SFU_NUM_CH			(SFU_NUM_CH),
 	.SFU_MODE_LEN			(SFU_MODE_LEN),
 	.SFU_SUB_LEN			(SFU_SUB_LEN),
+	.SFU_SRAM_DELAY			(SFU_SRAM_DELAY),
 	.SFU_SCALAR_DEPTH		(SFU_SCALAR_DEPTH),
 	.SFU_GB_DEPTH			(SFU_GB_DEPTH),
+	.LB_DEPTH			(LB_DEPTH),
+	.LB_DLY				(LB_DLY),
+	.LB_CH				(LB_CH),
+	.LB_RAM_TYPE			(LB_RAM_TYPE),
 	.AXI_DATA_WIDTH			(AXI_DATA_WIDTH),
 	.AXI_ADDR_WIDTH			(AXI_ADDR_WIDTH),
 	.AXI_STRB_WIDTH			(AXI_STRB_WIDTH),
@@ -552,15 +640,22 @@ module tb (  /*AUTOARG*/
 							     .m02_axi_wlast	(m02_axi_wlast),
 							     .m02_axi_wstrb	(m02_axi_wstrb[AXI_STRB_WIDTH-1:0]),
 							     .m02_axi_wvalid	(m02_axi_wvalid),
-							     .m_net_axis_tready	(m_net_axis_tready),
-							     .net_data_in	(net_data_in[(ROWS*INPUT_LENGTH)-1:0]),
-							     .net_data_tkeep	(net_data_tkeep[AXIS_KEEP_WIDTH-1:0]),
-							     .net_data_tlast	(net_data_tlast),
-							     .net_data_tuser	(net_data_tuser[AXIS_USER_WIDTH-1:0]),
-							     .net_valid_in	(net_valid_in),
 							     .params_core_sync	(params_core_sync[1:0]),
 							     .params_irq_ro	(params_irq_ro),
+							     .params_mac_rst	(params_mac_rst),
+							     .params_qsfp0_loopback_in(params_qsfp0_loopback_in[11:0]),
+							     .params_qsfp1_loopback_in(params_qsfp1_loopback_in[11:0]),
 							     .params_step_num	(params_step_num[7:0]),
+							     .qsfp0_mac_tx_axis_tdata(qsfp0_mac_tx_axis_tdata[511:0]),
+							     .qsfp0_mac_tx_axis_tkeep(qsfp0_mac_tx_axis_tkeep[63:0]),
+							     .qsfp0_mac_tx_axis_tlast(qsfp0_mac_tx_axis_tlast),
+							     .qsfp0_mac_tx_axis_tuser(qsfp0_mac_tx_axis_tuser[7:0]),
+							     .qsfp0_mac_tx_axis_tvalid(qsfp0_mac_tx_axis_tvalid),
+							     .qsfp1_mac_tx_axis_tdata(qsfp1_mac_tx_axis_tdata[511:0]),
+							     .qsfp1_mac_tx_axis_tkeep(qsfp1_mac_tx_axis_tkeep[63:0]),
+							     .qsfp1_mac_tx_axis_tlast(qsfp1_mac_tx_axis_tlast),
+							     .qsfp1_mac_tx_axis_tuser(qsfp1_mac_tx_axis_tuser[7:0]),
+							     .qsfp1_mac_tx_axis_tvalid(qsfp1_mac_tx_axis_tvalid),
 							     .s_pcie_axi_arready(),		 // Templated
 							     .s_pcie_axi_awready(),		 // Templated
 							     .s_pcie_axi_bid	(),		 // Templated
@@ -611,16 +706,28 @@ module tb (  /*AUTOARG*/
 							     .m02_axi_rresp	(m02_axi_rresp[1:0]),
 							     .m02_axi_rvalid	(m02_axi_rvalid),
 							     .m02_axi_wready	(m02_axi_wready),
-							     .m_net_axis_tdata	(m_net_axis_tdata[AXIS_DATA_WIDTH-1:0]),
-							     .m_net_axis_tdest	(m_net_axis_tdest[AXIS_DEST_WIDTH-1:0]),
-							     .m_net_axis_tid	(m_net_axis_tid[AXIS_ID_WIDTH-1:0]),
-							     .m_net_axis_tkeep	(m_net_axis_tkeep[AXIS_KEEP_WIDTH-1:0]),
-							     .m_net_axis_tlast	(m_net_axis_tlast),
-							     .m_net_axis_tuser	(m_net_axis_tuser[AXIS_USER_WIDTH-1:0]),
-							     .m_net_axis_tvalid	(m_net_axis_tvalid),
-							     .net_tx_rdy	(net_tx_rdy),
 							     .params_core_sync0_ro(params_core_sync0_ro[31:0]),
 							     .params_core_sync1_ro(params_core_sync1_ro[31:0]),
+							     .qsfp0_mac_tx_axis_tready(qsfp0_mac_tx_axis_tready),
+							     .qsfp0_rx_axis_tdata_int(qsfp0_rx_axis_tdata_int[511:0]),
+							     .qsfp0_rx_axis_tkeep_int(qsfp0_rx_axis_tkeep_int[63:0]),
+							     .qsfp0_rx_axis_tlast_int(qsfp0_rx_axis_tlast_int),
+							     .qsfp0_rx_axis_tuser_int(qsfp0_rx_axis_tuser_int[7:0]),
+							     .qsfp0_rx_axis_tvalid_int(qsfp0_rx_axis_tvalid_int),
+							     .qsfp0_rx_clk_int	(qsfp0_rx_clk_int),
+							     .qsfp0_rx_rst_int	(qsfp0_rx_rst_int),
+							     .qsfp0_tx_clk_int	(qsfp0_tx_clk_int),
+							     .qsfp0_tx_rst_int	(qsfp0_tx_rst_int),
+							     .qsfp1_mac_tx_axis_tready(qsfp1_mac_tx_axis_tready),
+							     .qsfp1_rx_axis_tdata_int(qsfp1_rx_axis_tdata_int[511:0]),
+							     .qsfp1_rx_axis_tkeep_int(qsfp1_rx_axis_tkeep_int[63:0]),
+							     .qsfp1_rx_axis_tlast_int(qsfp1_rx_axis_tlast_int),
+							     .qsfp1_rx_axis_tuser_int(qsfp1_rx_axis_tuser_int[7:0]),
+							     .qsfp1_rx_axis_tvalid_int(qsfp1_rx_axis_tvalid_int),
+							     .qsfp1_rx_clk_int	(qsfp1_rx_clk_int),
+							     .qsfp1_rx_rst_int	(qsfp1_rx_rst_int),
+							     .qsfp1_tx_clk_int	(qsfp1_tx_clk_int),
+							     .qsfp1_tx_rst_int	(qsfp1_tx_rst_int),
 							     .rst		(rst),
 							     .s_pcie_axi_araddr	(),		 // Templated
 							     .s_pcie_axi_arburst(),		 // Templated
@@ -961,10 +1068,10 @@ module tb (  /*AUTOARG*/
       .ADDR_WIDTH   (AXI_ADDR_WIDTH),
       .STRB_WIDTH   (AXI_STRB_WIDTH),
       .ID_WIDTH   (M_ID_WIDTH),
-      .PIPELINE_OUTPUT  (PIPELINE_OUTPUT),
-      .VALID_ADDR_WIDTH  (VALID_ADDR_WIDTH),
-      .WORD_WIDTH   (AXI_WORD_WIDTH),
-      .WORD_SIZE   (AXI_WORD_SIZE)
+      .PIPELINE_OUTPUT  (PIPELINE_OUTPUT)
+      //.VALID_ADDR_WIDTH  (VALID_ADDR_WIDTH),
+      //.WORD_WIDTH   (AXI_WORD_WIDTH),
+      //.WORD_SIZE   (AXI_WORD_SIZE)
   ) u00_ram (  /*autoinst*/
 	     // Outputs
 	     .s_axi_awready		(m00_axi_awready_reg),	 // Templated
@@ -1011,10 +1118,10 @@ module tb (  /*AUTOARG*/
       .ADDR_WIDTH   (AXI_ADDR_WIDTH),
       .STRB_WIDTH   (AXI_STRB_WIDTH),
       .ID_WIDTH   (M_ID_WIDTH),
-      .PIPELINE_OUTPUT  (PIPELINE_OUTPUT),
-      .VALID_ADDR_WIDTH  (VALID_ADDR_WIDTH),
-      .WORD_WIDTH   (AXI_WORD_WIDTH),
-      .WORD_SIZE   (AXI_WORD_SIZE)
+      .PIPELINE_OUTPUT  (PIPELINE_OUTPUT)
+      //.VALID_ADDR_WIDTH  (VALID_ADDR_WIDTH),
+      //.WORD_WIDTH   (AXI_WORD_WIDTH),
+      //.WORD_SIZE   (AXI_WORD_SIZE)
   ) u01_ram (
       .s_axi_awaddr(m01_axi_awaddr_reg[AXI_ADDR_WIDTH-1:0] - 64'h2_0000_0000),
       .s_axi_araddr(m01_axi_araddr_reg[AXI_ADDR_WIDTH-1:0] - 64'h2_0000_0000),
@@ -1065,10 +1172,10 @@ module tb (  /*AUTOARG*/
       .ADDR_WIDTH   (AXI_ADDR_WIDTH),
       .STRB_WIDTH   (AXI_STRB_WIDTH),
       .ID_WIDTH   (M_ID_WIDTH),
-      .PIPELINE_OUTPUT  (PIPELINE_OUTPUT),
-      .VALID_ADDR_WIDTH  (VALID_ADDR_WIDTH),
-      .WORD_WIDTH   (AXI_WORD_WIDTH),
-      .WORD_SIZE   (AXI_WORD_SIZE)
+      .PIPELINE_OUTPUT  (PIPELINE_OUTPUT)
+      //.VALID_ADDR_WIDTH  (VALID_ADDR_WIDTH),
+      //.WORD_WIDTH   (AXI_WORD_WIDTH),
+      //.WORD_SIZE   (AXI_WORD_SIZE)
   ) u02_ram (
       .s_axi_awaddr  (m02_axi_awaddr_reg[AXI_ADDR_WIDTH-1:0] - 64'h4_0000_0000),
       .s_axi_araddr  (m02_axi_araddr_reg[AXI_ADDR_WIDTH-1:0] - 64'h4_0000_0000),
@@ -1183,47 +1290,47 @@ module tb (  /*AUTOARG*/
 								 .rst			(rst),
 								 .params_step_num	(params_step_num[7:0]));
 
-  net_cnt #(
-      /*AUTOINSTPARAM*/
-	    // Parameters
-	    .AXI_DATA_WIDTH		(AXI_DATA_WIDTH),
-	    .AXI_ADDR_WIDTH		(AXI_ADDR_WIDTH),
-	    .AXI_STRB_WIDTH		(AXI_STRB_WIDTH),
-	    .AXI_ID_WIDTH		(AXI_ID_WIDTH),
-	    .AXI_MAX_BURST_LEN		(AXI_MAX_BURST_LEN),
-	    .AXIS_DATA_WIDTH		(AXIS_DATA_WIDTH),
-	    .AXIS_KEEP_ENABLE		(AXIS_KEEP_ENABLE),
-	    .AXIS_KEEP_WIDTH		(AXIS_KEEP_WIDTH),
-	    .AXIS_LAST_ENABLE		(AXIS_LAST_ENABLE),
-	    .AXIS_ID_ENABLE		(AXIS_ID_ENABLE),
-	    .AXIS_ID_WIDTH		(AXIS_ID_WIDTH),
-	    .AXIS_DEST_ENABLE		(AXIS_DEST_ENABLE),
-	    .AXIS_DEST_WIDTH		(AXIS_DEST_WIDTH),
-	    .AXIS_USER_ENABLE		(AXIS_USER_ENABLE),
-	    .AXIS_USER_WIDTH		(AXIS_USER_WIDTH),
-	    .LEN_WIDTH			(LEN_WIDTH),
-	    .TAG_WIDTH			(TAG_WIDTH),
-	    .ENABLE_SG			(ENABLE_SG),
-	    .ENABLE_UNALIGNED		(ENABLE_UNALIGNED),
-	    .ROWS			(ROWS),
-	    .INPUT_LENGTH		(INPUT_LENGTH)) u_net_cnt (  /*AUTOINST*/
-								   // Outputs
-								   .m_net_axis_tdata	(m_net_axis_tdata[AXIS_DATA_WIDTH-1:0]),
-								   .m_net_axis_tdest	(m_net_axis_tdest[AXIS_DEST_WIDTH-1:0]),
-								   .m_net_axis_tid	(m_net_axis_tid[AXIS_ID_WIDTH-1:0]),
-								   .m_net_axis_tkeep	(m_net_axis_tkeep[AXIS_KEEP_WIDTH-1:0]),
-								   .m_net_axis_tlast	(m_net_axis_tlast),
-								   .m_net_axis_tuser	(m_net_axis_tuser[AXIS_USER_WIDTH-1:0]),
-								   .m_net_axis_tvalid	(m_net_axis_tvalid),
-								   .net_tx_rdy		(net_tx_rdy),
-								   // Inputs
-								   .m_net_axis_tready	(m_net_axis_tready),
-								   .net_data_in		(net_data_in[(ROWS*INPUT_LENGTH)-1:0]),
-								   .net_valid_in	(net_valid_in),
-								   .net_data_tkeep	(net_data_tkeep[AXIS_KEEP_WIDTH-1:0]),
-								   .net_data_tlast	(net_data_tlast),
-								   .net_data_tuser	(net_data_tuser[AXIS_USER_WIDTH-1:0]));
-
+//  net_cnt #(
+//      /*AUTOINSTPARAM*/
+//	    // Parameters
+//	    .AXI_DATA_WIDTH		(AXI_DATA_WIDTH),
+//	    .AXI_ADDR_WIDTH		(AXI_ADDR_WIDTH),
+//	    .AXI_STRB_WIDTH		(AXI_STRB_WIDTH),
+//	    .AXI_ID_WIDTH		(AXI_ID_WIDTH),
+//	    .AXI_MAX_BURST_LEN		(AXI_MAX_BURST_LEN),
+//	    .AXIS_DATA_WIDTH		(AXIS_DATA_WIDTH),
+//	    .AXIS_KEEP_ENABLE		(AXIS_KEEP_ENABLE),
+//	    .AXIS_KEEP_WIDTH		(AXIS_KEEP_WIDTH),
+//	    .AXIS_LAST_ENABLE		(AXIS_LAST_ENABLE),
+//	    .AXIS_ID_ENABLE		(AXIS_ID_ENABLE),
+//	    .AXIS_ID_WIDTH		(AXIS_ID_WIDTH),
+//	    .AXIS_DEST_ENABLE		(AXIS_DEST_ENABLE),
+//	    .AXIS_DEST_WIDTH		(AXIS_DEST_WIDTH),
+//	    .AXIS_USER_ENABLE		(AXIS_USER_ENABLE),
+//	    .AXIS_USER_WIDTH		(AXIS_USER_WIDTH),
+//	    .LEN_WIDTH			(LEN_WIDTH),
+//	    .TAG_WIDTH			(TAG_WIDTH),
+//	    .ENABLE_SG			(ENABLE_SG),
+//	    .ENABLE_UNALIGNED		(ENABLE_UNALIGNED),
+//	    .ROWS			(ROWS),
+//	    .INPUT_LENGTH		(INPUT_LENGTH)) u_net_cnt (  /*AUTOINST*/
+//								   // Outputs
+//								   .m_net_axis_tdata	(m_net_axis_tdata[AXIS_DATA_WIDTH-1:0]),
+//								   .m_net_axis_tdest	(m_net_axis_tdest[AXIS_DEST_WIDTH-1:0]),
+//								   .m_net_axis_tid	(m_net_axis_tid[AXIS_ID_WIDTH-1:0]),
+//								   .m_net_axis_tkeep	(m_net_axis_tkeep[AXIS_KEEP_WIDTH-1:0]),
+//								   .m_net_axis_tlast	(m_net_axis_tlast),
+//								   .m_net_axis_tuser	(m_net_axis_tuser[AXIS_USER_WIDTH-1:0]),
+//								   .m_net_axis_tvalid	(m_net_axis_tvalid),
+//								   .net_tx_rdy		(net_tx_rdy),
+//								   // Inputs
+//								   .m_net_axis_tready	(m_net_axis_tready),
+//								   .net_data_in		(net_data_in[(ROWS*INPUT_LENGTH)-1:0]),
+//								   .net_valid_in	(net_valid_in),
+//								   .net_data_tkeep	(net_data_tkeep[AXIS_KEEP_WIDTH-1:0]),
+//								   .net_data_tlast	(net_data_tlast),
+//								   .net_data_tuser	(net_data_tuser[AXIS_USER_WIDTH-1:0]));
+//
 
 
   /* uart_model  AUTO_TEMPLATE  (
@@ -1245,9 +1352,147 @@ module tb (  /*AUTOARG*/
 			   .txd			(uart_txd_o));	 // Templated
 
 
+
+
+//cmac_top #(/*autoinstparam*/
+//	   // Parameters
+//	   .ROWS			(ROWS),
+//	   .INPUT_LENGTH		(INPUT_LENGTH),
+//	   .AXI_DATA_WIDTH		(AXI_DATA_WIDTH),
+//	   .AXI_ADDR_WIDTH		(AXI_ADDR_WIDTH),
+//	   .AXI_STRB_WIDTH		(AXI_STRB_WIDTH),
+//	   .AXI_ID_WIDTH		(AXI_ID_WIDTH),
+//	   .AXI_MAX_BURST_LEN		(AXI_MAX_BURST_LEN),
+//	   .AXIS_DATA_WIDTH		(AXIS_DATA_WIDTH),
+//	   .AXIS_KEEP_ENABLE		(AXIS_KEEP_ENABLE),
+//	   .AXIS_KEEP_WIDTH		(AXIS_KEEP_WIDTH),
+//	   .AXIS_LAST_ENABLE		(AXIS_LAST_ENABLE),
+//	   .AXIS_ID_ENABLE		(AXIS_ID_ENABLE),
+//	   .AXIS_ID_WIDTH		(AXIS_ID_WIDTH),
+//	   .AXIS_DEST_ENABLE		(AXIS_DEST_ENABLE),
+//	   .AXIS_DEST_WIDTH		(AXIS_DEST_WIDTH),
+//	   .AXIS_USER_ENABLE		(AXIS_USER_ENABLE),
+//	   .AXIS_USER_WIDTH		(AXIS_USER_WIDTH),
+//	   .LEN_WIDTH			(LEN_WIDTH),
+//	   .TAG_WIDTH			(TAG_WIDTH),
+//	   .ENABLE_SG			(ENABLE_SG),
+//	   .ENABLE_UNALIGNED		(ENABLE_UNALIGNED),
+//	   .AXI_WORD_WIDTH		(AXI_WORD_WIDTH),
+//	   .AXI_WORD_SIZE		(AXI_WORD_SIZE),
+//	   .AXI_BURST_SIZE		(AXI_BURST_SIZE),
+//	   .AXI_MAX_BURST_SIZE		(AXI_MAX_BURST_SIZE),
+//	   .OFFSET_WIDTH		(OFFSET_WIDTH),
+//	   .OFFSET_MASK			(OFFSET_MASK),
+//	   .ADDR_MASK			(ADDR_MASK),
+//	   .CYCLE_COUNT_WIDTH		(CYCLE_COUNT_WIDTH),
+//	   .STATUS_FIFO_ADDR_WIDTH	(STATUS_FIFO_ADDR_WIDTH),
+//	   .OUTPUT_FIFO_ADDR_WIDTH	(OUTPUT_FIFO_ADDR_WIDTH),
+//	   .M_ID_WIDTH			(M_ID_WIDTH)) u_cmac_top(/*autoinst*/
+//								 // Outputs
+//								 .m_net_axis_tdata	(m_net_axis_tdata[AXIS_DATA_WIDTH-1:0]),
+//								 .m_net_axis_tdest	(m_net_axis_tdest[AXIS_DEST_WIDTH-1:0]),
+//								 .m_net_axis_tid	(m_net_axis_tid[AXIS_ID_WIDTH-1:0]),
+//								 .m_net_axis_tkeep	(m_net_axis_tkeep[AXIS_KEEP_WIDTH-1:0]),
+//								 .m_net_axis_tlast	(m_net_axis_tlast),
+//								 .m_net_axis_tuser	(m_net_axis_tuser[AXIS_USER_WIDTH-1:0]),
+//								 .m_net_axis_tvalid	(m_net_axis_tvalid),
+//								 .net_tx_rdy		(net_tx_rdy),
+//								 .qsfp0_mac_tx_axis_tdata(qsfp0_mac_tx_axis_tdata[511:0]),
+//								 .qsfp0_mac_tx_axis_tkeep(qsfp0_mac_tx_axis_tkeep[63:0]),
+//								 .qsfp0_mac_tx_axis_tlast(qsfp0_mac_tx_axis_tlast),
+//								 .qsfp0_mac_tx_axis_tuser(qsfp0_mac_tx_axis_tuser),
+//								 .qsfp0_mac_tx_axis_tvalid(qsfp0_mac_tx_axis_tvalid),
+//								 .qsfp1_mac_tx_axis_tdata(qsfp1_mac_tx_axis_tdata[511:0]),
+//								 .qsfp1_mac_tx_axis_tkeep(qsfp1_mac_tx_axis_tkeep[63:0]),
+//								 .qsfp1_mac_tx_axis_tlast(qsfp1_mac_tx_axis_tlast),
+//								 .qsfp1_mac_tx_axis_tuser(qsfp1_mac_tx_axis_tuser),
+//								 .qsfp1_mac_tx_axis_tvalid(qsfp1_mac_tx_axis_tvalid),
+//								 // Inputs
+//								 .clk			(clk),
+//								 .rst			(rst),
+//								 .m_net_axis_tready	(m_net_axis_tready),
+//								 .net_data_in		(net_data_in[(ROWS*INPUT_LENGTH)-1:0]),
+//								 .net_data_tkeep	(net_data_tkeep[AXIS_KEEP_WIDTH-1:0]),
+//								 .net_data_tlast	(net_data_tlast),
+//								 .net_data_tuser	(net_data_tuser[AXIS_USER_WIDTH-1:0]),
+//								 .net_rdesc_len		(net_rdesc_len[LEN_WIDTH-1:0]),
+//								 .net_rstart		(net_rstart),
+//								 .net_tdesc_len		(net_tdesc_len[LEN_WIDTH-1:0]),
+//								 .net_tstart		(net_tstart),
+//								 .net_valid_in		(net_valid_in),
+//								 .params_qsfp0_dmac_addrh(params_qsfp0_dmac_addrh[15:0]),
+//								 .params_qsfp0_dmac_addrl(params_qsfp0_dmac_addrl[31:0]),
+//								 .params_qsfp0_mac_addrh(params_qsfp0_mac_addrh[15:0]),
+//								 .params_qsfp0_mac_addrl(params_qsfp0_mac_addrl[31:0]),
+//								 .params_qsfp1_dmac_addrh(params_qsfp1_dmac_addrh[15:0]),
+//								 .params_qsfp1_dmac_addrl(params_qsfp1_dmac_addrl[31:0]),
+//								 .params_qsfp1_mac_addrh(params_qsfp1_mac_addrh[15:0]),
+//								 .params_qsfp1_mac_addrl(params_qsfp1_mac_addrl[31:0]),
+//								 .qsfp0_mac_tx_axis_tready(qsfp0_mac_tx_axis_tready),
+//								 .qsfp0_rx_axis_tdata_int(qsfp0_rx_axis_tdata_int[511:0]),
+//								 .qsfp0_rx_axis_tkeep_int(qsfp0_rx_axis_tkeep_int[63:0]),
+//								 .qsfp0_rx_axis_tlast_int(qsfp0_rx_axis_tlast_int),
+//								 .qsfp0_rx_axis_tuser_int(qsfp0_rx_axis_tuser_int),
+//								 .qsfp0_rx_axis_tvalid_int(qsfp0_rx_axis_tvalid_int),
+//								 .qsfp0_rx_clk_int	(qsfp0_rx_clk_int),
+//								 .qsfp0_rx_rst_int	(qsfp0_rx_rst_int),
+//								 .qsfp0_tx_clk_int	(qsfp0_tx_clk_int),
+//								 .qsfp0_tx_rst_int	(qsfp0_tx_rst_int),
+//								 .qsfp1_mac_tx_axis_tready(qsfp1_mac_tx_axis_tready),
+//								 .qsfp1_rx_axis_tdata_int(qsfp1_rx_axis_tdata_int[511:0]),
+//								 .qsfp1_rx_axis_tkeep_int(qsfp1_rx_axis_tkeep_int[63:0]),
+//								 .qsfp1_rx_axis_tlast_int(qsfp1_rx_axis_tlast_int),
+//								 .qsfp1_rx_axis_tuser_int(qsfp1_rx_axis_tuser_int),
+//								 .qsfp1_rx_axis_tvalid_int(qsfp1_rx_axis_tvalid_int),
+//								 .qsfp1_rx_clk_int	(qsfp1_rx_clk_int),
+//								 .qsfp1_rx_rst_int	(qsfp1_rx_rst_int),
+//								 .qsfp1_tx_clk_int	(qsfp1_tx_clk_int),
+//								 .qsfp1_tx_rst_int	(qsfp1_tx_rst_int));
+//
+
+
+
+
+  cmac_model u_cmac_model (/*autoinst*/
+			   // Outputs
+			   .qsfp0_mac_tx_axis_tready(qsfp0_mac_tx_axis_tready),
+			   .qsfp0_rx_axis_tdata_int(qsfp0_rx_axis_tdata_int[511:0]),
+			   .qsfp0_rx_axis_tkeep_int(qsfp0_rx_axis_tkeep_int[63:0]),
+			   .qsfp0_rx_axis_tlast_int(qsfp0_rx_axis_tlast_int),
+			   .qsfp0_rx_axis_tuser_int(qsfp0_rx_axis_tuser_int),
+			   .qsfp0_rx_axis_tvalid_int(qsfp0_rx_axis_tvalid_int),
+			   .qsfp0_rx_clk_int	(qsfp0_rx_clk_int),
+			   .qsfp0_rx_rst_int	(qsfp0_rx_rst_int),
+			   .qsfp0_tx_clk_int	(qsfp0_tx_clk_int),
+			   .qsfp0_tx_rst_int	(qsfp0_tx_rst_int),
+			   .qsfp1_mac_tx_axis_tready(qsfp1_mac_tx_axis_tready),
+			   .qsfp1_rx_axis_tdata_int(qsfp1_rx_axis_tdata_int[511:0]),
+			   .qsfp1_rx_axis_tkeep_int(qsfp1_rx_axis_tkeep_int[63:0]),
+			   .qsfp1_rx_axis_tlast_int(qsfp1_rx_axis_tlast_int),
+			   .qsfp1_rx_axis_tuser_int(qsfp1_rx_axis_tuser_int),
+			   .qsfp1_rx_axis_tvalid_int(qsfp1_rx_axis_tvalid_int),
+			   .qsfp1_rx_clk_int	(qsfp1_rx_clk_int),
+			   .qsfp1_rx_rst_int	(qsfp1_rx_rst_int),
+			   .qsfp1_tx_clk_int	(qsfp1_tx_clk_int),
+			   .qsfp1_tx_rst_int	(qsfp1_tx_rst_int),
+			   // Inputs
+			   .qsfp0_mac_tx_axis_tdata(qsfp0_mac_tx_axis_tdata[511:0]),
+			   .qsfp0_mac_tx_axis_tkeep(qsfp0_mac_tx_axis_tkeep[63:0]),
+			   .qsfp0_mac_tx_axis_tlast(qsfp0_mac_tx_axis_tlast),
+			   .qsfp0_mac_tx_axis_tuser(qsfp0_mac_tx_axis_tuser),
+			   .qsfp0_mac_tx_axis_tvalid(qsfp0_mac_tx_axis_tvalid),
+			   .qsfp1_mac_tx_axis_tdata(qsfp1_mac_tx_axis_tdata[511:0]),
+			   .qsfp1_mac_tx_axis_tkeep(qsfp1_mac_tx_axis_tkeep[63:0]),
+			   .qsfp1_mac_tx_axis_tlast(qsfp1_mac_tx_axis_tlast),
+			   .qsfp1_mac_tx_axis_tuser(qsfp1_mac_tx_axis_tuser),
+			   .qsfp1_mac_tx_axis_tvalid(qsfp1_mac_tx_axis_tvalid));
+
+
+
+
 endmodule
 
 // Local Variables:
 // verilog-auto-inst-param-value:t
-// verilog-library-directories:("." "../../../Code/interface/axi0/"  "../../../Code/top/"  "../../common/uart_model/" )
+// verilog-library-directories:("." "../../../Code/interface/axi0/"  "../../../Code/top/"  "../../common/uart_model/" "../../../Code/cmac/" )
 // End:
