@@ -17,8 +17,10 @@
 - run `make fpga_1core_250m` in `main` directory
 
 4. Simulation
-- Parameters Bin File: You could Download model parameters for ViT-B/16 at [Google Drive](https://drive.google.com/drive/folders/1jfPl2ttvgjvrhdxsx1s15K3HWwd-hw99?usp=sharing)
-    - To simulate, **copy the BIN files of the models to `top_sim` directory**
+- Parameters and Instructions Bin File: You could Download model parameters and instrucitons program for ViT-B/16 at [Google Drive](https://drive.google.com/drive/folders/1jfPl2ttvgjvrhdxsx1s15K3HWwd-hw99?usp=sharing)
+    - To simulate, **copy the corresponding BIN files of the models to `top_sim` directory**
+    - `vit-32.zip` include the bin file used for 32\*32 systolic array
+    - `vit-64.zip` include the bin file used for 64\*64 systolic array
 - `cd ./main/sim/top_sim`
 - Simulation using the default "cock" picture at 32\*32 systolic array: `make`
 - Simulation using the default "cock" picutre at 64\*64 systolic array: `make SMODE=MODE_64`

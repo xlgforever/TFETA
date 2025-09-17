@@ -20,10 +20,12 @@ if len(sys.argv) < 2:
     exit
 else:
     filename = str(sys.argv[1])
+    print('using {} picture'.format(filename))
 
 tile_size = 32
 if len(sys.argv) > 2:
     tile_size = int(sys.argv[2])
+    print('Tile size {}'.format(tile_size))
 
 # module config
 image_size=224
